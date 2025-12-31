@@ -1033,3 +1033,661 @@ git checkout V11.0.0
 8. **Version control your setup** - document which FreeRTOS version each project uses
 
 This organization keeps your workspace clean, maintainable, and scalable as you add more projects.
+
+Yes, **C++ is fully supported in FreeRTOS!** You can use C++ with FreeRTOS, including classes, templates, exceptions (with caveats), and the STL. Here's a comprehensive guide:
+
+## Basic C++ Integration
+
+### 1. Simple C++ with FreeRTOS Tasks
+
+**main.cpp:**
+```cpp
+#include <iostream>
+#include <FreeRTOS.h>
+#include <task.h>
+
+extern "C" {
+    void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName);
+    void vApplicationMallocFailedHook(void);
+    void vAssertCalled(const char *pcFile, unsigned long ulLine);
+}
+
+// C++ task function
+void cppTask1(void *pvParameters)
+{
+    (void)pvParameters;
+    
+    int counter = 0;
+    
+    for(;;)
+    {
+        std::cout << "C++ Task 1: " << counter++ << std::endl;
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+void cppTask2(void *pvParameters)
+{
+    (void)pvParameters;
+    
+    for(;;)
+    {
+        std::cout << "C++ Task 2 running" << std::endl;
+        vTaskDelay(pdMS_TO_TICKS(1500));
+    }
+}
+
+int main(void)
+{
+    std::cout << "FreeRTOS C++ Demo Starting..." << std::endl;
+
+    xTaskCreate(cppTask1, "CPPTask1", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+    xTaskCreate(cppTask2, "CPPTask2", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
+    vTaskStartScheduler();
+
+    return 0;
+}
+
+// Hook implementations
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    (void)xTask;
+    std::cerr << "Stack overflow in task: " << pcTaskName << std::endl;
+    exit(1);
+}
+
+void vApplicationMallocFailedHook(void)
+{
+    std::cerr << "Memory allocation failed!" << std::endl;
+    exit(1);
+}
+
+void vAssertCalled(const char *pcFile, unsigned long ulLine)
+{
+    std::cerr << "ASSERT: " << pcFile << ":" << ulLine << std::endl;
+    exit(1);
+}
+```
+
+### 2. Updated Makefile for C++
+
+```makefile
+PROJECT_NAME = testlinux_cpp
+BUILD_DIR = build
+SRC_DIR = src
+INC_DIR = include
+
+FREERTOS_ROOT = ../../FreeRTOS/FreeRTOS
+FREERTOS_SRC = $(FREERTOS_ROOT)/Source
+FREERTOS_PORT = $(FREERTOS_SRC)/portable/ThirdParty/GCC/Posix
+FREERTOS_INC = $(FREERTOS_SRC)/include
+
+# Use g++ for C++ compilation
+CXX = g++
+CC = gcc
+
+CXXFLAGS = -Wall -Wextra -pthread -g -std=c++17 \
+           -I$(INC_DIR) \
+           -I$(SRC_DIR) \
+           -I$(FREERTOS_INC) \
+           -I$(FREERTOS_PORT)
+
+CFLAGS = -Wall -Wextra -pthread -g \
+         -I$(INC_DIR) \
+         -I$(SRC_DIR) \
+         -I$(FREERTOS_INC) \
+         -I$(FREERTOS_PORT)
+
+LDFLAGS = -pthread -lrt -lstdc++
+
+# FreeRTOS C sources
+FREERTOS_SOURCES = \
+    $(FREERTOS_SRC)/tasks.c \
+    $(FREERTOS_SRC)/queue.c \
+    $(FREERTOS_SRC)/list.c \
+    $(FREERTOS_SRC)/timers.c \
+    $(FREERTOS_PORT)/port.c \
+    $(FREERTOS_SRC)/portable/MemMang/heap_3.c
+
+# Project sources
+PROJECT_C_SOURCES = $(SRC_DIR)/event.c
+PROJECT_CXX_SOURCES = $(SRC_DIR)/main.cpp
+
+# Object files
+FREERTOS_OBJS = $(addprefix $(BUILD_DIR)/, $(notdir $(FREERTOS_SOURCES:.c=.o)))
+PROJECT_C_OBJS = $(addprefix $(BUILD_DIR)/, $(notdir $(PROJECT_C_SOURCES:.c=.o)))
+PROJECT_CXX_OBJS = $(addprefix $(BUILD_DIR)/, $(notdir $(PROJECT_CXX_SOURCES:.cpp=.o)))
+
+OBJS = $(FREERTOS_OBJS) $(PROJECT_C_OBJS) $(PROJECT_CXX_OBJS)
+
+TARGET = $(BUILD_DIR)/$(PROJECT_NAME)
+
+VPATH = $(SRC_DIR):$(dir $(FREERTOS_SOURCES))
+
+all: $(BUILD_DIR) $(TARGET)
+
+$(BUILD_DIR):
+    mkdir -p $(BUILD_DIR)
+
+$(TARGET): $(OBJS)
+    @echo "Linking..."
+    $(CXX) $(OBJS) $(LDFLAGS) -o $(TARGET)
+
+$(BUILD_DIR)/%.o: %.cpp
+    @echo "Compiling C++ $<"
+    $(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o: %.c
+    @echo "Compiling C $<"
+    $(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+    rm -rf $(BUILD_DIR)
+
+run: $(TARGET)
+    $(TARGET)
+
+.PHONY: all clean run
+```
+
+## Object-Oriented Task Wrappers
+
+### Using C++ Classes for Tasks
+
+```cpp
+#include <iostream>
+#include <string>
+#include <FreeRTOS.h>
+#include <task.h>
+
+// Base Task class
+class Task {
+protected:
+    TaskHandle_t taskHandle;
+    std::string taskName;
+    UBaseType_t priority;
+    uint16_t stackSize;
+
+    // Static wrapper function required by FreeRTOS C API
+    static void taskFunction(void* pvParameters) {
+        Task* task = static_cast<Task*>(pvParameters);
+        task->run();
+    }
+
+    // Pure virtual function - must be implemented by derived classes
+    virtual void run() = 0;
+
+public:
+    Task(const std::string& name, UBaseType_t prio, uint16_t stack)
+        : taskHandle(nullptr), taskName(name), priority(prio), stackSize(stack) {}
+
+    virtual ~Task() {
+        if (taskHandle != nullptr) {
+            vTaskDelete(taskHandle);
+        }
+    }
+
+    bool start() {
+        BaseType_t result = xTaskCreate(
+            taskFunction,
+            taskName.c_str(),
+            stackSize,
+            this,  // Pass 'this' pointer as parameter
+            priority,
+            &taskHandle
+        );
+        return (result == pdPASS);
+    }
+
+    void suspend() {
+        if (taskHandle) vTaskSuspend(taskHandle);
+    }
+
+    void resume() {
+        if (taskHandle) vTaskResume(taskHandle);
+    }
+
+    TaskHandle_t getHandle() const {
+        return taskHandle;
+    }
+};
+
+// Example derived task
+class BlinkTask : public Task {
+private:
+    int counter;
+    TickType_t delay;
+
+public:
+    BlinkTask(const std::string& name, TickType_t delayMs)
+        : Task(name, 1, configMINIMAL_STACK_SIZE),
+          counter(0),
+          delay(pdMS_TO_TICKS(delayMs)) {}
+
+protected:
+    void run() override {
+        for(;;) {
+            std::cout << taskName << ": count = " << counter++ << std::endl;
+            vTaskDelay(delay);
+        }
+    }
+};
+
+// Another example task
+class SensorTask : public Task {
+private:
+    float temperature;
+
+public:
+    SensorTask(const std::string& name)
+        : Task(name, 2, configMINIMAL_STACK_SIZE),
+          temperature(20.0f) {}
+
+protected:
+    void run() override {
+        for(;;) {
+            // Simulate reading sensor
+            temperature += (rand() % 100 - 50) / 100.0f;
+            std::cout << taskName << ": Temperature = " 
+                      << temperature << "°C" << std::endl;
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
+    }
+};
+
+int main(void)
+{
+    std::cout << "C++ OOP FreeRTOS Demo" << std::endl;
+
+    // Create task objects
+    BlinkTask blink1("Blink1", 1000);
+    BlinkTask blink2("Blink2", 1500);
+    SensorTask sensor("Sensor");
+
+    // Start tasks
+    if (!blink1.start()) {
+        std::cerr << "Failed to start Blink1" << std::endl;
+        return 1;
+    }
+
+    if (!blink2.start()) {
+        std::cerr << "Failed to start Blink2" << std::endl;
+        return 1;
+    }
+
+    if (!sensor.start()) {
+        std::cerr << "Failed to start Sensor" << std::endl;
+        return 1;
+    }
+
+    std::cout << "All tasks started" << std::endl;
+
+    vTaskStartScheduler();
+
+    return 0;
+}
+```
+
+## C++ Wrapper for FreeRTOS Primitives
+
+### Queue Wrapper
+
+```cpp
+#include <FreeRTOS.h>
+#include <queue.h>
+#include <optional>
+#include <chrono>
+
+template<typename T>
+class Queue {
+private:
+    QueueHandle_t handle;
+
+public:
+    Queue(size_t length) {
+        handle = xQueueCreate(length, sizeof(T));
+        if (!handle) {
+            throw std::runtime_error("Failed to create queue");
+        }
+    }
+
+    ~Queue() {
+        if (handle) {
+            vQueueDelete(handle);
+        }
+    }
+
+    // Delete copy constructor and assignment
+    Queue(const Queue&) = delete;
+    Queue& operator=(const Queue&) = delete;
+
+    // Allow move
+    Queue(Queue&& other) noexcept : handle(other.handle) {
+        other.handle = nullptr;
+    }
+
+    bool send(const T& item, TickType_t timeout = portMAX_DELAY) {
+        return xQueueSend(handle, &item, timeout) == pdTRUE;
+    }
+
+    bool sendFromISR(const T& item) {
+        BaseType_t higherPriorityTaskWoken = pdFALSE;
+        bool result = xQueueSendFromISR(handle, &item, &higherPriorityTaskWoken) == pdTRUE;
+        portYIELD_FROM_ISR(higherPriorityTaskWoken);
+        return result;
+    }
+
+    std::optional<T> receive(TickType_t timeout = portMAX_DELAY) {
+        T item;
+        if (xQueueReceive(handle, &item, timeout) == pdTRUE) {
+            return item;
+        }
+        return std::nullopt;
+    }
+
+    size_t available() const {
+        return uxQueueMessagesWaiting(handle);
+    }
+
+    size_t space() const {
+        return uxQueueSpacesAvailable(handle);
+    }
+
+    bool isEmpty() const {
+        return available() == 0;
+    }
+
+    bool isFull() const {
+        return space() == 0;
+    }
+};
+```
+
+### Semaphore Wrapper
+
+```cpp
+#include <FreeRTOS.h>
+#include <semphr.h>
+
+class BinarySemaphore {
+private:
+    SemaphoreHandle_t handle;
+
+public:
+    BinarySemaphore() {
+        handle = xSemaphoreCreateBinary();
+        if (!handle) {
+            throw std::runtime_error("Failed to create semaphore");
+        }
+    }
+
+    ~BinarySemaphore() {
+        if (handle) {
+            vSemaphoreDelete(handle);
+        }
+    }
+
+    BinarySemaphore(const BinarySemaphore&) = delete;
+    BinarySemaphore& operator=(const BinarySemaphore&) = delete;
+
+    bool take(TickType_t timeout = portMAX_DELAY) {
+        return xSemaphoreTake(handle, timeout) == pdTRUE;
+    }
+
+    bool give() {
+        return xSemaphoreGive(handle) == pdTRUE;
+    }
+
+    bool giveFromISR() {
+        BaseType_t higherPriorityTaskWoken = pdFALSE;
+        bool result = xSemaphoreGiveFromISR(handle, &higherPriorityTaskWoken) == pdTRUE;
+        portYIELD_FROM_ISR(higherPriorityTaskWoken);
+        return result;
+    }
+};
+
+class Mutex {
+private:
+    SemaphoreHandle_t handle;
+
+public:
+    Mutex() {
+        handle = xSemaphoreCreateMutex();
+        if (!handle) {
+            throw std::runtime_error("Failed to create mutex");
+        }
+    }
+
+    ~Mutex() {
+        if (handle) {
+            vSemaphoreDelete(handle);
+        }
+    }
+
+    Mutex(const Mutex&) = delete;
+    Mutex& operator=(const Mutex&) = delete;
+
+    void lock() {
+        xSemaphoreTake(handle, portMAX_DELAY);
+    }
+
+    bool try_lock(TickType_t timeout = 0) {
+        return xSemaphoreTake(handle, timeout) == pdTRUE;
+    }
+
+    void unlock() {
+        xSemaphoreGive(handle);
+    }
+};
+
+// RAII lock guard
+class LockGuard {
+private:
+    Mutex& mutex;
+
+public:
+    explicit LockGuard(Mutex& m) : mutex(m) {
+        mutex.lock();
+    }
+
+    ~LockGuard() {
+        mutex.unlock();
+    }
+
+    LockGuard(const LockGuard&) = delete;
+    LockGuard& operator=(const LockGuard&) = delete;
+};
+```
+
+## Complete Example Using C++ Wrappers
+
+```cpp
+#include <iostream>
+#include <memory>
+#include <FreeRTOS.h>
+#include <task.h>
+
+// Include wrappers from above
+// ... (Queue, Mutex, Task classes)
+
+struct SensorData {
+    int id;
+    float value;
+    uint32_t timestamp;
+};
+
+class ProducerTask : public Task {
+private:
+    Queue<SensorData>& dataQueue;
+    int sensorId;
+
+public:
+    ProducerTask(const std::string& name, Queue<SensorData>& queue, int id)
+        : Task(name, 2, configMINIMAL_STACK_SIZE),
+          dataQueue(queue),
+          sensorId(id) {}
+
+protected:
+    void run() override {
+        for(;;) {
+            SensorData data{
+                sensorId,
+                20.0f + (rand() % 100) / 10.0f,
+                static_cast<uint32_t>(xTaskGetTickCount())
+            };
+
+            if (dataQueue.send(data, pdMS_TO_TICKS(100))) {
+                std::cout << "Producer " << sensorId 
+                          << ": Sent data = " << data.value << std::endl;
+            } else {
+                std::cout << "Producer " << sensorId 
+                          << ": Queue full!" << std::endl;
+            }
+
+            vTaskDelay(pdMS_TO_TICKS(1000 + sensorId * 500));
+        }
+    }
+};
+
+class ConsumerTask : public Task {
+private:
+    Queue<SensorData>& dataQueue;
+    Mutex& consoleMutex;
+
+public:
+    ConsumerTask(const std::string& name, Queue<SensorData>& queue, Mutex& mutex)
+        : Task(name, 1, configMINIMAL_STACK_SIZE),
+          dataQueue(queue),
+          consoleMutex(mutex) {}
+
+protected:
+    void run() override {
+        for(;;) {
+            auto data = dataQueue.receive(pdMS_TO_TICKS(2000));
+            
+            if (data.has_value()) {
+                LockGuard lock(consoleMutex);
+                std::cout << "Consumer: Received from sensor " 
+                          << data->id 
+                          << ", value = " << data->value
+                          << ", time = " << data->timestamp << std::endl;
+            } else {
+                std::cout << "Consumer: Timeout waiting for data" << std::endl;
+            }
+        }
+    }
+};
+
+int main(void)
+{
+    std::cout << "C++ FreeRTOS Wrapper Demo" << std::endl;
+
+    try {
+        // Create shared resources
+        Queue<SensorData> dataQueue(10);
+        Mutex consoleMutex;
+
+        // Create tasks
+        ProducerTask producer1("Producer1", dataQueue, 1);
+        ProducerTask producer2("Producer2", dataQueue, 2);
+        ConsumerTask consumer("Consumer", dataQueue, consoleMutex);
+
+        // Start tasks
+        producer1.start();
+        producer2.start();
+        consumer.start();
+
+        std::cout << "All tasks started successfully" << std::endl;
+
+        vTaskStartScheduler();
+
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+```
+
+## Important Considerations for C++ with FreeRTOS
+
+### 1. Exceptions
+
+**Be careful with exceptions:**
+- Exceptions increase code size significantly
+- Stack unwinding requires more stack space
+- On embedded systems, often disabled with `-fno-exceptions`
+- For Linux simulation, exceptions work fine
+
+```cpp
+// FreeRTOSConfig.h additions for exception support
+#define configUSE_NEWLIB_REENTRANT 1  // If using newlib
+```
+
+### 2. STL Usage
+
+**STL considerations:**
+- STL containers (vector, map, etc.) use dynamic memory
+- Make sure FreeRTOS heap is large enough
+- Consider custom allocators that use FreeRTOS heap
+
+```cpp
+#include <vector>
+#include <map>
+
+void myTask(void* param) {
+    std::vector<int> data;  // Uses standard heap (malloc)
+    data.reserve(100);      // Pre-allocate to avoid fragmentation
+    
+    for(;;) {
+        data.push_back(42);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+```
+
+### 3. Static Initialization
+
+**Thread safety of static initialization (C++11+):**
+```cpp
+// This is thread-safe in C++11 and later
+Mutex& getGlobalMutex() {
+    static Mutex globalMutex;  // Initialized once, thread-safe
+    return globalMutex;
+}
+```
+
+### 4. Global Objects
+
+**Constructors run before main():**
+```cpp
+// Global object constructor runs before main()
+Queue<int> globalQueue(10);  // Created before scheduler starts
+
+int main() {
+    // Queue already exists here
+    vTaskStartScheduler();
+}
+```
+
+## Summary
+
+**C++ works great with FreeRTOS:**
+- ✅ Classes and objects
+- ✅ Templates
+- ✅ STL (with enough heap)
+- ✅ Smart pointers
+- ✅ RAII patterns
+- ✅ Lambdas
+- ⚠️ Exceptions (use carefully, disabled on many embedded targets)
+- ⚠️ RTTI (often disabled with `-fno-rtti` to save space)
+
+**Best practices:**
+- Use RAII for resource management
+- Wrap FreeRTOS C APIs in C++ classes
+- Be mindful of stack and heap usage
+- Test thoroughly - C++ can use more resources than C
+
+For embedded targets, you might also add: `-fno-exceptions -fno-rtti` to save space.
