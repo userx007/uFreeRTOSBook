@@ -181,9 +181,7 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 ## Miscelaneous
 
 [51. **Supported processors**](docs/51_Processors.md)<br>
-
 [52. **Building and using FreeRTOS as a Linux Application for x86 architecture** ](docs/52_Building_and_Using_FreeRTOS_as_a_Linux_Application_for_x86.md)<br>
-
 [53. **Task states diagram**](docs/53_Task_states_diagram.md)<br>
-
 [54. **FreeRTOS APIs**](docs/54_FreeRTOS_APIs.md)<br>
+[55. **FreeRTOS Data Types Reference**](docs/55_FreeRTOS_Data_Types_Reference.md)<br>
