@@ -125,6 +125,8 @@ Tasks waiting for an event (timeout, semaphore, queue data, etc.). Blocked tasks
 ### 4. Suspended State
 Tasks explicitly suspended by `vTaskSuspend()`. They remain suspended until explicitly resumed with `vTaskResume()`. Unlike blocked tasks, suspended tasks won't automatically transition to Ready.
 
+![Task States](../images/6.png)
+
 ### State Transition Example
 
 ```c
