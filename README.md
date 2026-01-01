@@ -12,30 +12,31 @@ In short, FreeRTOS provides reliable real-time multitasking for resource-constra
 
 ## Core Fundamentals (1-10)
 
-[1. **RTOS Concepts and Scheduling Theory**](docs/1_RTOS_Concepts_and_Scheduling_Theory.md)<br>
+[1. **RTOS Concepts and Scheduling Theory**](docs/01_RTOS_Concepts_and_Scheduling_Theory.md)<br>
 Understanding preemptive vs cooperative scheduling, time-slicing, context switching, and how real-time operating systems differ from general-purpose operating systems.
 
-[2. **FreeRTOS Architecture**](docs/2_FreeRTOS_Architecture.md)<br>
+[2. **FreeRTOS Architecture**](docs/02_FreeRTOS_Architecture.md)<br>
 The overall structure of FreeRTOS, including its layered design, portability layer, and how it interacts with hardware through abstraction.
 
-[3. **Task Creation and Management**](docs/3_Task_Creation_and_Management.md)<br>
+[3. **Task Creation and Management**](docs/03_Task_Creation_and_Management.md)<br>
 Creating tasks using xTaskCreate() and vTaskDelete(), understanding task control blocks (TCB), task states (running, ready, blocked, suspended), and the lifecycle of tasks.
 
-[4. **Priority-Based Scheduling**](docs/4_Priority_Based_Scheduling.md)<br>
+[4. **Priority-Based Scheduling**](docs/04_Priority_Based_Scheduling.md)<br>
 How FreeRTOS implements fixed-priority preemptive scheduling, priority assignment strategies, and the behavior of the scheduler when multiple tasks have the same priority.
 
-[5. **Idle Task and Hook Functions**](docs/5_Idle_Task_and_Hook_Functions.md)<br>
+[5. **Idle Task and Hook Functions**](docs/05_Idle_Task_and_Hook_Functions.md)<br>
 The role of the idle task in FreeRTOS, implementing idle hooks for background processing, and understanding when the idle task runs.
 
-[6. **Task Delays and Time Management**](docs/6_Task_Delays_and_Time_Management.md)<br>
+[6. **Task Delays and Time Management**](docs/06_Task_Delays_and_Time_Management.md)<br>
 Using vTaskDelay() and vTaskDelayUntil() for periodic task execution, understanding tick interrupts, configTICK_RATE_HZ, and achieving precise timing.
 
-[7. **FreeRTOSConfig.h Configuration**] Mastering all configuration options in this critical header file, including memory allocation schemes, stack sizes, priority levels, and feature enables(docs/7_FreeRTOSConfig.h_Configuration.md)<br>
+[7. **FreeRTOSConfig.h Configuration**](docs/07_FreeRTOSConfig.h_Configuration.md)<br>
+Mastering all configuration options in this critical header file, including memory allocation schemes, stack sizes, priority levels, and feature enables
 
-[8. **Memory Management Schemes**](docs/8_Memory_Management_Schemes.md)<br>
+[8. **Memory Management Schemes**](docs/08_Memory_Management_Schemes.md)<br>
 Understanding heap_1 through heap_5 implementations, their trade-offs, when to use each, and implementing custom memory allocation schemes
 
-[9. **Stack Overflow Detection**](docs/9_Stack_Overflow_Detection.md)<br>
+[9. **Stack Overflow Detection**](docs/09_Stack_Overflow_Detection.md)<br>
 Configuring and using stack overflow checking methods (method 1 and 2), understanding how stack growth works on different architectures, and debugging stack issues
 
 [10. **Context Switching Mechanics**](docs/10_Context_Switching_Mechanics.md)<br>
