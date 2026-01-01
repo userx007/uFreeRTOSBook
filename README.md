@@ -186,4 +186,4 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 
 [53. **Task states diagram**](docs/53_Task_states_diagram.md)<br>
 
-
+[54. **FreeRTOS APIs**](docs/54_FreeRTOS_APIs.md)<br>
