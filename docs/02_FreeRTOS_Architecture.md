@@ -231,6 +231,8 @@ int main(void)
     for(;;);
 }
 ```
+![User Tasks](../images/5.png)
+
 
 ## Benefits of This Architecture
 
