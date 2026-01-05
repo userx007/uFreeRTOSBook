@@ -190,3 +190,4 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [58. **What "Port-Specific" Means in FreeRTOS**](docs/58_Port_Specific_Meaning.md)<br>
 [59. **FreeRTOS configuration parameters**](docs/59_Configuration_Parameters.md)<br>
 [60. **FreeRTOS task delay functions**](docs/60_Task_Delay_functions.md)<br>
+[61. **Delaying High-Priority Tasks**](docs/61_Delaying_High_Priority_Tasks_Issue.md)<br>

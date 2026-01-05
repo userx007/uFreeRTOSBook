@@ -321,6 +321,7 @@ int main(void) {
 
 ![Descriptive Diagram](../images/7.png)<br>
 
+
 ## Key Considerations and Best Practices
 
 **Priority Inversion**: Be aware that a low-priority task holding a resource can block a high-priority task. Use priority inheritance mutexes to mitigate this.
