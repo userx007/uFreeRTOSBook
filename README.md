@@ -188,3 +188,4 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [56. **FreeRTOS Task context switch**](docs/56_Task_Context_Switch.md)<br>
 [57. **FreeRTOS Naming Convention - Complete Prefix Guide**](docs/57_Prefix_conventions.md)<br>
 [58. **What "Port-Specific" Means in FreeRTOS**](docs/58_Port_Specific_Meaning.md)<br>
+[59. **FreeRTOS configuration parameters**](docs/59_Configuration_Parameters.md)<br>
