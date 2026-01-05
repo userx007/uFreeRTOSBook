@@ -191,3 +191,4 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [59. **FreeRTOS configuration parameters**](docs/59_Configuration_Parameters.md)<br>
 [60. **FreeRTOS task delay functions**](docs/60_Task_Delay_functions.md)<br>
 [61. **Delaying High-Priority Tasks**](docs/61_Delaying_High_Priority_Tasks_Issue.md)<br>
+[62. **Implementing GPIO toggle macros for logic analyzer debugging in both C and Rust**](docs/62_Extended_Debug_With_Logic_Analizer.md)<br>
