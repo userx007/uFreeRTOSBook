@@ -491,6 +491,15 @@ size_t xPortGetFreeHeapSize(void)
 | heap_4 | Yes | Yes | Minimal | Good | General purpose |
 | heap_5 | Yes | Yes | Minimal | Good | Complex memory layouts |
 
+## Selection Method
+Add exactly one of these files to your project:
+
+heap_1.c <br>
+heap_2.c <br>
+heap_3.c <br>
+heap_4.c <br>
+heap_5.c <br>
+
 ## Practical Recommendations
 
 **For most applications:** Use **heap_4**. It provides the best balance of features and is well-tested.
@@ -504,3 +513,4 @@ size_t xPortGetFreeHeapSize(void)
 **For debugging:** Temporarily switch to **heap_3** to use standard memory debugging tools.
 
 Always monitor your heap usage during development using `xPortGetFreeHeapSize()` and `xPortGetMinimumEverFreeHeapSize()` to ensure you've allocated sufficient heap and aren't running into memory exhaustion.
+
