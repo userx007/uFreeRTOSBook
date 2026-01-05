@@ -166,6 +166,42 @@ void EXTI_IRQHandler(void)
 }
 ```
 
+This FreeRTOS code demonstrates **interrupt-to-task communication** using the efficient task notification mechanism.
+
+#### Task Handle and Setup
+
+The `TaskHandle_t xDataProcessingHandle` is a global handle that stores a reference to the data processing task. This handle is essential because the interrupt service routine (ISR) needs it to send notifications to the task.
+
+#### The Data Processing Task
+
+The `vDataProcessingTask` function runs in an infinite loop and follows this flow:
+
+**Waiting for Notification**: The task calls `ulTaskNotifyTake()` which blocks the task until it receives a notification. The parameters mean:
+- `pdTRUE` clears the notification counter after reading it (binary semaphore behavior)
+- `portMAX_DELAY` makes the task wait indefinitely until a notification arrives
+
+While waiting, the task enters the **BLOCKED** state and doesn't consume any CPU time. When the ISR sends a notification, the task transitions to the **READY** state. The scheduler then moves it to **RUNNING** when it becomes the highest priority ready task.
+
+**Processing Data**: Once unblocked, the task calls `ProcessSensorData()` to handle whatever sensor data triggered the interrupt. This is where the actual work happens.
+
+**Delay Period**: After processing, `vTaskDelay(pdMS_TO_TICKS(100))` blocks the task for 100 milliseconds. This converts milliseconds to system ticks and suspends the task. The task moves to **BLOCKED** state again, then back to **READY** after the timeout expires, and finally returns to the top of the loop to wait for the next notification.
+
+#### The Interrupt Handler
+
+The `EXTI_IRQHandler` is an external interrupt handler (like from a GPIO pin or sensor). Here's what happens:
+
+**Task Woken Flag**: `xHigherPriorityTaskWoken` starts as `pdFALSE` and tracks whether the notification wakes up a higher-priority task than what's currently running.
+
+**Sending Notification**: `vTaskNotifyGiveFromISR()` increments the notification value for the data processing task. 
+The `FromISR` suffix indicates this is the interrupt-safe version. This call immediately moves the task from **BLOCKED** to **READY** state.
+
+**Context Switch**: `portYIELD_FROM_ISR(xHigherPriorityTaskWoken)` checks if a higher priority task was woken. If so, it triggers a context switch immediately after exiting the ISR, ensuring the newly-ready task runs as soon as possible rather than waiting for the next scheduler tick.
+
+#### Key Benefits
+
+This pattern is very efficient because task notifications are lighter weight than semaphores or queues, requiring no separate kernel objects. The task only wakes when there's actual work to do, and the 100ms delay prevents the task from spinning if interrupts arrive rapidly. The context switch mechanism ensures responsive real-time behavior by running high-priority tasks immediately after ISR completion.
+
+
 ## Task Lifecycle and Deletion
 
 ### Creating Tasks at Runtime
