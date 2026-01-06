@@ -336,6 +336,14 @@ int main(void)
 // Deadlock risk
 Task1: Take(MutexA) -> Take(MutexB)
 Task2: Take(MutexB) -> Take(MutexA)
+
+// Task1 is holding MutexA and is waiting for MutexB, which is already held by Task2.
+// Task2 is holding MutexB and is waiting for MutexA, which is already held by Task1.
+
+// Result:
+// Both tasks are now stuck. Task1 is waiting for MutexB and Task2 is waiting for MutexA. 
+// They can't proceed, and neither will release their lock until they acquire the other lock. 
+// This results in a deadlock, where the program is in a state of perpetual waiting, and no task can make progress.
 ```
 
 4. **Use timeouts when appropriate**: Instead of `portMAX_DELAY`, consider a reasonable timeout
