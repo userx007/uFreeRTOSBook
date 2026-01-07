@@ -194,3 +194,4 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [62. **Implementing GPIO toggle macros for logic analyzer debugging in both C and Rust**](docs/62_Extended_Debug_With_Logic_Analizer.md)<br>
 [63. **FreeRTOS runtime statistics tracking**](docs/63_FreeRTOS_runtime_statistics.md)<br>
 [64. **Priority Inversion in FreeRTOS**](docs/64_Priority_Inversion.md)<br>
+[65. **Queues vs Stream Buffers vs Message Buffers**](docs/65_Queues_StreamBuffers_Message_Buffers.md)<br>
