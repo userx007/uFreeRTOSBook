@@ -59,16 +59,62 @@ The Timer Service Task priority is critical for system behavior:
 - Suitable for non-critical periodic tasks
 - Risk: Timer accuracy suffers under heavy load
 
-### Priority Inversion Scenarios
+
+## Priority Inversion / Starvation Scenario
 
 Consider this scenario:
+
 ```
-Task A (Priority 3) → Calls xTimerStart() → Blocks on command queue
-Timer Task (Priority 2) → Processing previous commands
-Task B (Priority 1) → Running, preventing Timer Task from executing
+Task A (Priority 3, highest) → Calls xTimerStart(timer, portMAX_DELAY);
+ → This sends a command to the Timer Command Queue
+ → If the queue is full, Task A blocks (only until the command is queued)
+    → Task A does NOT wait for the timer to actually start (this is a common misconception)
+
+Task B (Priority 2) → Running continuously
+ → Always ready (never blocks or yields)
+
+Timer Service Task (Priority 1)
+ → Responsible for:
+    → dequeuing timer commands
+    → starting timers
+ → Needs CPU time to process the Timer Command Queue
+ → But it can only run if no higher-priority task is ready
 ```
 
-Task A can't complete until the Timer Task processes its command, but the Timer Task can't run because Task B has lower priority than Task A but higher than the Timer Task.
+### What happens
+
+1. **Task A (priority 3)** calls `xTimerStart()`.
+2. The Timer Command Queue is full, so **Task A blocks**, waiting only for space in the queue.
+3. The scheduler selects the **highest-priority ready task**, which is **Task B (priority 2)**.
+4. **Task B continues running** and never blocks.
+5. The **Timer Service task (priority 1)** is ready, but never scheduled.
+6. Because the Timer Service task never runs:
+   * The Timer Command Queue never drains.
+   * Task A remains blocked indefinitely.
+
+### Why Task B can block the Timer Service task
+
+* FreeRTOS always runs the **highest-priority ready task**.
+* After Task A blocks, the priority order of *ready* tasks is:
+
+```
+Task B (priority 2)
+Timer Service Task (priority 1)
+```
+
+* Since **Task B has a higher priority than the Timer Service task**, it preempts it.
+* As long as Task B remains ready, the Timer Service task **cannot run**.
+
+### Important clarifications
+
+* This is **not true priority inversion** (no mutex involved).
+* This is **CPU starvation** caused by an insufficient Timer Service task priority.
+* The Timer Service task is **not blocked** — it is **ready but never scheduled**.
+* Task A is **not waiting for the timer to start**, only for queue space.
+
+### Key rule to remember
+
+The Timer Service task priority must be at ***least as high as any task that can block while waiting for timer commands to be processed***.
 
 ## Practical Examples
 
@@ -353,6 +399,8 @@ void vSmartTimerStart(TimerHandle_t xTimer, const char *pcTimerName)
 ```
 
 ### Timer Task Priority Guidelines
+
+***The Timer Service task must have a priority at least as high as any task that depends on timers.***
 
 **Set HIGH when:**
 - Hardware watchdog timers are used
