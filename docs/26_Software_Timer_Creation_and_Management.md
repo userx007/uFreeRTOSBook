@@ -75,7 +75,7 @@ void setup_timers(void)
 {
     // Create one-shot timer (3000ms period)
     xOneShotTimer = xTimerCreate(
-        "OneShot",                  // Timer name
+        "OneShot",                 // Timer name
         pdMS_TO_TICKS(3000),       // Period in ticks (3 seconds)
         pdFALSE,                   // Auto-reload: pdFALSE = one-shot
         (void *)0,                 // Timer ID
@@ -207,49 +207,416 @@ void vApplicationSetup(void)
 ```
 
 ## Example: Debouncing with Timer ID
+Two buttons – single debounce timer (safe design)
 
 ```c
-#define BUTTON_1    0
-#define BUTTON_2    1
+#define DEBOUNCE_TIME_MS   50
 
-TimerHandle_t xDebounceTimer;
-
-void vDebounceCallback(TimerHandle_t xTimer)
+typedef enum
 {
-    // Get which button triggered the timer
-    uint32_t ulButtonID = (uint32_t)pvTimerGetTimerID(xTimer);
-    
-    // Read the stable button state
-    if (GPIO_ReadPin(ulButtonID == BUTTON_1 ? BUTTON1_PORT : BUTTON2_PORT,
-                     ulButtonID == BUTTON_1 ? BUTTON1_PIN : BUTTON2_PIN))
+    BUTTON_1 = 0,
+    BUTTON_2 = 1,
+} Button_t;
+
+#define BUTTON_MASK(b) (1U << (b))
+
+static TimerHandle_t xDebounceTimer;
+static volatile uint32_t ulPendingButtons = 0;
+
+/* Debounce callback (Timer Service task context) */
+static void vDebounceCallback(TimerHandle_t xTimer)
+{
+    uint32_t pending = ulPendingButtons;
+
+    /* Clear pending flags */
+    ulPendingButtons = 0;
+
+    if (pending & BUTTON_MASK(BUTTON_1))
     {
-        printf("Button %lu pressed (debounced)\n", ulButtonID);
-        // Handle button press
+        if (HAL_GPIO_ReadPin(BUTTON1_GPIO_PORT, BUTTON1_PIN) == GPIO_PIN_SET)
+        {
+            printf("Button 1 pressed (debounced)\n");
+        }
+    }
+
+    if (pending & BUTTON_MASK(BUTTON_2))
+    {
+        if (HAL_GPIO_ReadPin(BUTTON2_GPIO_PORT, BUTTON2_PIN) == GPIO_PIN_SET)
+        {
+            printf("Button 2 pressed (debounced)\n");
+        }
     }
 }
 
-void BUTTON_IRQ_Handler(uint32_t buttonID)
+
+/* EXTI ISR callback */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    
-    // Set timer ID to identify which button
-    vTimerSetTimerID(xDebounceTimer, (void *)buttonID);
-    
-    // Start/reset 50ms debounce timer
+
+    if (GPIO_Pin == BUTTON1_PIN)
+    {
+        ulPendingButtons |= BUTTON_MASK(BUTTON_1);
+    }
+    else if (GPIO_Pin == BUTTON2_PIN)
+    {
+        ulPendingButtons |= BUTTON_MASK(BUTTON_2);
+    }
+
+    /* Restart shared debounce timer */
     xTimerResetFromISR(xDebounceTimer, &xHigherPriorityTaskWoken);
-    
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-void setup_debounce(void)
+
+/* Init */
+void Buttons_Init(void)
 {
     xDebounceTimer = xTimerCreate(
-        "Debounce",
-        pdMS_TO_TICKS(50),
-        pdFALSE,           // One-shot
-        (void *)0,
+        "BTN_DB",
+        pdMS_TO_TICKS(DEBOUNCE_TIME_MS),
+        pdFALSE,
+        NULL,
         vDebounceCallback
     );
+
+    configASSERT(xDebounceTimer);
+}
+```
+
+## Example: STM32 + FreeRTOS Two Button Debounce using Software Timers
+
+```c
+#include "stm32f4xx_hal.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include <stdio.h>
+
+/* Button GPIO definitions (example)  */
+#define BUTTON1_GPIO_PORT   GPIOA
+#define BUTTON1_PIN         GPIO_PIN_0
+
+#define BUTTON2_GPIO_PORT   GPIOA
+#define BUTTON2_PIN         GPIO_PIN_1
+
+/* Button IDs  */
+typedef enum
+{
+    BUTTON_1 = 0,
+    BUTTON_2 = 1,
+    BUTTON_COUNT
+} Button_t;
+
+/* Globals  */
+static TimerHandle_t xDebounceTimers[BUTTON_COUNT];
+
+
+/* Debounce Timer Callback (runs in Timer Service task) */
+static void vDebounceCallback(TimerHandle_t xTimer)
+{
+    Button_t button = (Button_t) pvTimerGetTimerID(xTimer);
+    GPIO_PinState state;
+
+    switch (button)
+    {
+        case BUTTON_1:
+            state = HAL_GPIO_ReadPin(BUTTON1_GPIO_PORT, BUTTON1_PIN);
+            break;
+
+        case BUTTON_2:
+            state = HAL_GPIO_ReadPin(BUTTON2_GPIO_PORT, BUTTON2_PIN);
+            break;
+
+        default:
+            return;
+    }
+
+    if (state == GPIO_PIN_SET)   // button still pressed after debounce
+    {
+        printf("Button %d pressed (debounced)\n", button);
+        /* Handle button press here (notify task, set event, etc.) */
+    }
+}
+
+/* Button / Timer Init (call before scheduler start) */
+static void Buttons_Init(void)
+{
+    xDebounceTimers[BUTTON_1] = xTimerCreate(
+        "BTN1_DB",
+        pdMS_TO_TICKS(50),
+        pdFALSE,                 // one-shot
+        (void *)BUTTON_1,
+        vDebounceCallback
+    );
+
+    xDebounceTimers[BUTTON_2] = xTimerCreate(
+        "BTN2_DB",
+        pdMS_TO_TICKS(50),
+        pdFALSE,
+        (void *)BUTTON_2,
+        vDebounceCallback
+    );
+
+    configASSERT(xDebounceTimers[BUTTON_1]);
+    configASSERT(xDebounceTimers[BUTTON_2]);
+}
+
+
+/* HAL EXTI Callback (called from ISR) */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if (GPIO_Pin == BUTTON1_PIN)
+    {
+        xTimerResetFromISR(
+            xDebounceTimers[BUTTON_1],
+            &xHigherPriorityTaskWoken
+        );
+    }
+    else if (GPIO_Pin == BUTTON2_PIN)
+    {
+        xTimerResetFromISR(
+            xDebounceTimers[BUTTON_2],
+            &xHigherPriorityTaskWoken
+        );
+    }
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+
+/* EXTI IRQ Handlers (CubeMX usually generates these) */
+void EXTI0_IRQHandler(void)
+{
+    HAL_GPIO_EXTI_IRQHandler(BUTTON1_PIN);
+}
+
+void EXTI1_IRQHandler(void)
+{
+    HAL_GPIO_EXTI_IRQHandler(BUTTON2_PIN);
+}
+
+
+/* Example Idle Task (optional) */
+static void vDummyTask(void *argument)
+{
+    for (;;)
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+/* MAIN */
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();    // generated by CubeMX
+
+    /* GPIO init must configure:
+     * - BUTTON pins as input
+     * - EXTI interrupt enabled
+     * - Pull-up or pull-down as needed
+     */
+    MX_GPIO_Init();          // generated by CubeMX
+
+    Buttons_Init();
+
+    xTaskCreate(
+        vDummyTask,
+        "Dummy",
+        256,
+        NULL,
+        tskIDLE_PRIORITY + 1,
+        NULL
+    );
+
+    vTaskStartScheduler();
+
+    /* Should never reach here */
+    while (1)
+    {
+    }
+}
+```
+
+## Example: STM32 + FreeRTOS Two Buttons  
+(With Debounce + Short / Long Press, one debounce timer + one long-press timer per button)
+
+```c
+#include "stm32f4xx_hal.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include <stdio.h>
+
+/* Timing  */
+#define DEBOUNCE_MS      50
+#define LONG_PRESS_MS   1000
+
+/* GPIO  */
+#define BUTTON1_GPIO_PORT   GPIOA
+#define BUTTON1_PIN         GPIO_PIN_0
+
+#define BUTTON2_GPIO_PORT   GPIOA
+#define BUTTON2_PIN         GPIO_PIN_1
+
+/* Button IDs  */
+typedef enum
+{
+    BUTTON_1 = 0,
+    BUTTON_2 = 1,
+    BUTTON_COUNT
+} Button_t;
+
+/* Button state  */
+typedef enum
+{
+    BTN_IDLE = 0,
+    BTN_DEBOUNCED,
+    BTN_LONG_SENT
+} ButtonState_t;
+
+/* Button control block  */
+typedef struct
+{
+    TimerHandle_t debounceTimer;
+    TimerHandle_t longTimer;
+    GPIO_TypeDef *port;
+    uint16_t      pin;
+    ButtonState_t state;
+} ButtonCtrl_t;
+
+/* Globals  */
+static ButtonCtrl_t Buttons[BUTTON_COUNT];
+
+/* Long-press timer callback */
+static void vLongPressCallback(TimerHandle_t xTimer)
+{
+    Button_t btn = (Button_t) pvTimerGetTimerID(xTimer);
+    ButtonCtrl_t *b = &Buttons[btn];
+
+    if (HAL_GPIO_ReadPin(b->port, b->pin) == GPIO_PIN_SET)
+    {
+        b->state = BTN_LONG_SENT;
+        printf("Button %d LONG press\n", btn);
+    }
+}
+
+
+/* Debounce timer callback */
+static void vDebounceCallback(TimerHandle_t xTimer)
+{
+    Button_t btn = (Button_t) pvTimerGetTimerID(xTimer);
+    ButtonCtrl_t *b = &Buttons[btn];
+
+    if (HAL_GPIO_ReadPin(b->port, b->pin) == GPIO_PIN_SET)
+    {
+        /* Button is stable and pressed */
+        b->state = BTN_DEBOUNCED;
+
+        /* Start long-press detection */
+        xTimerStart(b->longTimer, 0);
+    }
+}
+
+
+/* HAL EXTI callback (ISR context) */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    for (int i = 0; i < BUTTON_COUNT; i++)
+    {
+        ButtonCtrl_t *b = &Buttons[i];
+
+        if (GPIO_Pin == b->pin)
+        {
+            if (HAL_GPIO_ReadPin(b->port, b->pin) == GPIO_PIN_SET)
+            {
+                /* Button pressed → debounce */
+                xTimerResetFromISR(b->debounceTimer, &xHigherPriorityTaskWoken);
+            }
+            else
+            {
+                /* Button released */
+                xTimerStopFromISR(b->longTimer, &xHigherPriorityTaskWoken);
+
+                if (b->state == BTN_DEBOUNCED)
+                {
+                    printf("Button %d SHORT press\n", i);
+                }
+
+                b->state = BTN_IDLE;
+            }
+        }
+    }
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+
+/* Button init */
+static void Buttons_Init(void)
+{
+    Buttons[BUTTON_1] = (ButtonCtrl_t){
+        .port = BUTTON1_GPIO_PORT,
+        .pin  = BUTTON1_PIN,
+        .state = BTN_IDLE
+    };
+
+    Buttons[BUTTON_2] = (ButtonCtrl_t){
+        .port = BUTTON2_GPIO_PORT,
+        .pin  = BUTTON2_PIN,
+        .state = BTN_IDLE
+    };
+
+    for (int i = 0; i < BUTTON_COUNT; i++)
+    {
+        Buttons[i].debounceTimer = xTimerCreate(
+            "DB",
+            pdMS_TO_TICKS(DEBOUNCE_MS),
+            pdFALSE,
+            (void *)i,
+            vDebounceCallback
+        );
+
+        Buttons[i].longTimer = xTimerCreate(
+            "LP",
+            pdMS_TO_TICKS(LONG_PRESS_MS),
+            pdFALSE,
+            (void *)i,
+            vLongPressCallback
+        );
+
+        configASSERT(Buttons[i].debounceTimer);
+        configASSERT(Buttons[i].longTimer);
+    }
+}
+
+/* Dummy task */
+static void vIdleTask(void *arg)
+{
+    for (;;)
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();   /* Configure EXTI for both buttons */
+
+    Buttons_Init();
+
+    xTaskCreate(vIdleTask, "Idle", 256, NULL, 1, NULL);
+
+    vTaskStartScheduler();
+
+    while (1) {}
 }
 ```
 

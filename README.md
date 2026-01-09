@@ -198,3 +198,5 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [66. **Differences between vTaskNotifyGiveFromISR and xTaskNotifyFromISR**](docs/66_Differences_vTaskNotifyGiveFromISR_xTaskNotifyFromISR.md)<br>
 [67. **FreeRTOS Binary vs Counting Semaphores**](docs/67_Binary_vs_Counting_Semaphores.md)<br>
 [68. **FreeRTOS Task Notifications vs. Semaphores**](docs/68_Task_Notifications_vs_Semaphores.md)<br>
+[69. **FreeRTOS Deadlock Usecase**](docs/69_Deadlock_Usecase.md)<br>
+
