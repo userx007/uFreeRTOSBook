@@ -196,3 +196,4 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [64. **Priority Inversion in FreeRTOS**](docs/64_Priority_Inversion.md)<br>
 [65. **Queues vs Stream Buffers vs Message Buffers**](docs/65_Queues_StreamBuffers_Message_Buffers.md)<br>
 [66. **Differences between vTaskNotifyGiveFromISR and xTaskNotifyFromISR**](docs/66_Differences_vTaskNotifyGiveFromISR_xTaskNotifyFromISR.md)<br>
+[67. **FreeRTOS Binary vs Counting Semaphores**](docs/67_Binary_vs_Counting_Semaphores.md)<br>
