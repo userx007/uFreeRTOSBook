@@ -247,3 +247,281 @@ int main(void)
 **Predictability**: Deterministic behavior is maintained regardless of the underlying hardware.
 
 This layered architecture is what has made FreeRTOS the most popular RTOS for microcontrollers, running on everything from tiny 8-bit processors to powerful 32-bit ARM cores and even 64-bit RISC-V processors, all while maintaining a consistent programming model and minimal resource footprint.
+
+---
+
+## FreeRTOS Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           APPLICATION LAYER                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │  Task 1  │  │  Task 2  │  │  Task 3  │  │  Task N  │  │   ISR    │   │
+│  │(Priority)│  │(Priority)│  │(Priority)│  │(Priority)│  │ Handlers │   │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘   │
+└───────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────┘
+        │             │             │             │             │
+        └─────────────┴─────────────┼─────────────┴─────────────┘
+                                    │
+        ┌───────────────────────────▼──────────────────────────┐
+        │                                                      │
+┌───────▼──────────────────────────────────────────────────────▼──────────┐
+│                         FreeRTOS KERNEL                                 │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────┐     │
+│  │                    SCHEDULER                                   │     │
+│  │  • Ready List (per priority)                                   │     │
+│  │  • Blocked List (waiting tasks)                                │     │
+│  │  • Suspended List                                              │     │
+│  │  • Context Switching Logic                                     │     │
+│  └──────────────┬──────────────────────────────┬──────────────────┘     │
+│                 │                              │                        │
+│  ┌──────────────▼──────────┐    ┌──────────────▼───────────────┐        │
+│  │   TASK MANAGEMENT       │    │   TIME MANAGEMENT            │        │
+│  │  • Create/Delete        │    │  • vTaskDelay()              │        │
+│  │  • Suspend/Resume       │    │  • vTaskDelayUntil()         │        │
+│  │  • Priority Set/Get     │    │  • Software Timers           │        │
+│  └─────────────────────────┘    └──────────────────────────────┘        │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │              INTER-TASK COMMUNICATION & SYNC                     │   │
+│  │                                                                  │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────┐  ┌────────────┐  │   │
+│  │  │   Queues    │  │ Semaphores  │  │  Mutexes │  │Event Groups│  │   │
+│  │  │             │  │  (Binary/   │  │(Priority │  │            │  │   │
+│  │  │ (FIFO/LIFO) │  │  Counting)  │  │ Inherit) │  │(Bit flags) │  │   │
+│  │  └─────────────┘  └─────────────┘  └──────────┘  └────────────┘  │   │
+│  │                                                                  │   │
+│  │  ┌─────────────────────┐           ┌──────────────────────┐      │   │
+│  │  │  Task Notifications │           │  Stream Buffers      │      │   │
+│  │  │  (Lightweight sync) │           │  (Byte streams)      │      │   │
+│  │  └─────────────────────┘           └──────────────────────┘      │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │                    MEMORY MANAGEMENT                             │   │
+│  │  • heap_1.c (Simple allocation, no free)                         │   │
+│  │  • heap_2.c (Best fit, no coalescence)                           │   │
+│  │  • heap_3.c (Wrapper for malloc/free)                            │   │
+│  │  • heap_4.c (Coalescence, fragmentation handling)                │   │
+│  │  • heap_5.c (Multiple non-contiguous heaps)                      │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────┬──────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────▼──────────────────────────────────────┐
+│                         HARDWARE ABSTRACTION                            │
+│                                                                         │
+│  ┌──────────────────────┐         ┌──────────────────────────────────┐  │
+│  │  PORT LAYER          │         │  HARDWARE SPECIFIC               │  │
+│  │  (portmacro.h)       │◄────────┤  • SysTick Timer (tick source)   │  │
+│  │                      │         │  • PendSV (context switch)       │  │
+│  │  • portYIELD()       │         │  • Interrupt Controller          │  │
+│  │  • Critical Sections │         │  • Stack Pointer                 │  │
+│  │  • Data Types        │         └──────────────────────────────────┘  │
+│  └──────────────────────┘                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+                            INTERACTION FLOW
+                            ================
+
+1. Task Creation:
+   App → xTaskCreate() → Scheduler adds to Ready List
+
+2. Task Execution:
+   Scheduler → Selects highest priority ready task → Context Switch
+
+3. Inter-Task Communication:
+   Task A → xQueueSend()/xSemaphoreGive() → Queue/Semaphore → Task B wakes
+
+4. Blocking:
+   Task → xQueueReceive(timeout) → Moved to Blocked List → Scheduler runs next
+
+5. Tick Interrupt:
+   Hardware Timer → vTaskIncrementTick() → Unblock delayed tasks → Reschedule
+
+6. Context Switch:
+   PendSV ISR → Save current context → Load new context → Resume execution
+```
+
+**Key Component Interactions:**
+
+- **Scheduler** constantly selects the highest-priority ready task
+- **Tasks** communicate via queues, semaphores, mutexes, or notifications
+- **Tick interrupt** drives time-based operations and task delays
+- **Port layer** provides CPU-specific primitives for context switching
+- **Memory management** handles dynamic allocation for tasks, queues, etc.
+
+---
+
+## FreeRTOS Execution Sequence Diagram
+
+```
+Time ↓
+
+Scheduler    Task1(High)    Task2(Low)     Queue      Hardware/ISR    
+   |             |              |            |              |
+   |─────────────┼──────────────┼────────────┼──────────────┤  System Start
+   |             |              |            |              |
+   | Create      |              |            |              |
+   |────────────>|              |            |              |
+   |             |              |            |              |
+   | Create      |              |            |              |
+   |─────────────┼─────────────>|            |              |
+   |             |              |            |              |
+   | Start Scheduler            |            |              |
+   |═════════════╗              |            |              |
+   |             ║              |            |              |
+   | Select Task1 (highest priority)         |              |
+   |─────────────>              |            |              |
+   |             ║ Running      |            |              |
+   |             ║──────────────┼────────────┼──────────────┤
+   |             ║              |            |              |
+   |             ║ Process data |            |              |
+   |             ║ ...          |            |              |
+   |             ║              |            |              |
+   |             ║ xQueueReceive(portMAX_DELAY)             |
+   |             ║──────────────┼───────────>|              |
+   |             ║              |            | Empty        |
+   |             ║              |            |<─────────────┤
+   |             ║              |            |              |
+   |             X Blocked      |            |              |  Task1 blocked
+   |             ║ (waiting)    |            |              |  waiting for data
+   |<────────────┘              |            |              |
+   |                            |            |              |
+   | Context Switch             |            |              |
+   | Select Task2 (only ready)  |            |              |
+   |─────────────┼─────────────>|            |              |
+   |             |              ║ Running    |              |
+   |             |              ║────────────┼──────────────┤
+   |             |              ║            |              |
+   |             |              ║ Initialize |              |
+   |             |              ║ peripheral |              |
+   |             |              ║ ...        |              |
+   |             |              ║            |              |
+   |             |              ║ vTaskDelay(1000)          |
+   |             |              ║────────────┼──────────────┤
+   |             |              X Blocked    |              |  Task2 delayed
+   |             |              ║ (delayed)  |              |  for 1000 ticks
+   |<────────────┼──────────────┘            |              |
+   |                                         |              |
+   | No ready tasks                          |              |
+   | Enter Idle                              |              |
+   |═════════════════════════════════════════╗              |
+   |                                         ║              |
+   |                                         ║              |  Idle state
+   |                                         ║              |  (low power)
+   |                                         ║              |
+   |                                         ║              |
+   |                                         ║              |    ┌─────────┐
+   |                                         ║              |<───┤ HARDWARE│
+   |                                         ║              |    │  EVENT  │
+   |                                         ║              |    └─────────┘
+   |                                         ║              ║              |
+   |                                         ║              ║ ISR Triggered|
+   |                                         ║              ║ Read sensor  |
+   |                                         ║              ║              |
+   |                                         ║              ║ xQueueSendFromISR()
+   |                                         ║              ║─────────────>|
+   |                                         ║              ║    | Store   |
+   |                                         ║              ║    | data    |
+   |                                         ║              ║    |         |
+   |             ○ Unblocked     |           ║              ║    |         |
+   |<────────────┼───────────────┼───────────┼──────────────║    |         |
+   |             |               |           |              ║    |         |
+   |             |               |           |              ║ Request      |
+   |             |               |           |              ║ Context      |
+   |             |               |           |              ║ Switch       |
+   |             |               |           |              ║<─────────────┤
+   |<────────────┼───────────────┼───────────┼──────────────┘              |
+   |                                         |                             |
+   | PendSV Exception (Context Switch)       |                             |
+   |═════════════╗                           |                             |
+   |             ║ Save context              |                             |
+   |             ║ Load Task1 context        |                             |
+   |─────────────>              |            |                             |
+   |             ║ Running      |            |                             |
+   |             ║──────────────┼────────────┼─────────────────────────────┤
+   |             ║              |            |                             |
+   |             ║ xQueueReceive() returns   |                             |
+   |             ║<─────────────┼────────────┤                             |
+   |             ║              |            | Data                        |
+   |             ║              |            | retrieved                   |
+   |             ║              |            |                             |
+   |             ║ Process      |            |                             |
+   |             ║ received data|            |                             |
+   |             ║ ...          |            |                             |
+   |             ║              |            |                             |
+   |             ║ Toggle LED   |            |                             |
+   |             ║──────────────┼────────────┼────────────────────────────>|
+   |             ║              |            |                             |
+   |             ║              |            |                       ┌─────────┐
+   |             ║              |            |                       │ SysTick │
+   |             ║              |            |                       │ Timer   │
+   |             ║              |            |                       └─────────┘
+   |             ║              |            |                             |
+   |             ║              |            |                             ║
+   |             ║              |            |              ┌──────────────┤
+   |             ║              |            |              │ Tick ISR     |
+   |<────────────┼──────────────┼────────────┼──────────────┤              |
+   |             ║              |            |              | Increment    |
+   | vTaskIncrementTick()       |            |              | tick count   |
+   |─────────────┼──────────────┼────────────┼──────────────┤              |
+   |             ║              |            |              |              |
+   |             ║              ○ Unblocked  |              | Check delayed|
+   |             ║              | (delay     |              | tasks        |
+   |             ║              | expired)   |              |              |
+   |<────────────┼──────────────┤            |              |              |
+   |                            |            |              |              |
+   | Task2 now ready (lower priority than Task1)            |              |
+   | Task1 continues (preemptive)            |              |              |
+   |─────────────>              |            |              |              |
+   |             ║ Continue     |            |              |              |
+   |             ║ execution    |            |              |              |
+   |             ║ ...          |            |              |              |
+   |             ║              |            |              |              |
+   |             ║ vTaskDelay(500)           |              |              |
+   |             ║──────────────┼────────────┼──────────────┼──────────────┤
+   |             X Blocked      |            |              |              |
+   |<────────────┘              |            |              |              |
+   |                            |            |              |              |
+   | Context Switch             |            |              |              |
+   | Select Task2 (now highest ready)        |              |              |
+   |─────────────┼──────────────>            |              |              |
+   |             |              ║ Running    |              |              |
+   |             |              ║────────────┼──────────────┼──────────────┤
+   |             |              ║            |              |              |
+   |             |              ║ Check      |              |              |
+   |             |              ║ status     |              |              |
+   |             |              ║ ...        |              |              |
+   |             |              ║            |              |              |
+   |             |              ║ vTaskDelay(1000)          |              |
+   |             |              X Blocked    |              |              |
+   |<────────────┼──────────────┘            |              |              |
+   |                                         |              |              |
+   |             ...  Cycle continues  ...   |              |              |
+   |                                                                       |
+
+Legend:
+  |  = Task/Component active but waiting
+  ║  = Task executing (using CPU)
+  X  = Task blocked/suspended
+  ○  = Task unblocked (ready to run)
+  ═  = Scheduler/Kernel control
+  →  = Function call/action
+  <─ = Return/response
+```
+
+**Key Events in the Sequence:**
+
+1. **Initialization**: Both tasks created, Task1 has higher priority
+2. **Task1 Execution**: Runs first, blocks on empty queue
+3. **Task2 Execution**: Runs when Task1 blocks, then delays itself
+4. **Hardware ISR**: Interrupt occurs, sends data to queue via `xQueueSendFromISR()`
+5. **Task1 Unblock**: Queue now has data, Task1 becomes ready
+6. **Context Switch**: PendSV switches from ISR to Task1 (highest priority)
+7. **Task1 Processing**: Receives queue data, processes it, delays
+8. **SysTick Interrupt**: Time-based interrupt unblocks Task2
+9. **Task2 Execution**: Lower priority task runs when Task1 blocks
+10. **Cycle Repeats**: Preemptive multitasking continues
+
+This demonstrates FreeRTOS's preemptive priority-based scheduling and interrupt-driven task synchronization!

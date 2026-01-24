@@ -306,3 +306,5 @@ In this system, the spark timing task will **always** preempt the diagnostics ta
 ## Summary
 
 RTOS scheduling theory emphasizes predictability and determinism. FreeRTOS provides a flexible, priority-based preemptive scheduler that ensures high-priority tasks always get CPU time when needed. Understanding these concepts is essential for designing responsive, reliable embedded systems where timing guarantees are critical.
+
+
