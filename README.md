@@ -9,6 +9,7 @@
 
 In short, FreeRTOS provides reliable real-time multitasking for resource-constrained embedded systems.
 
+---
 
 ## Core Fundamentals (1-10)
 
@@ -42,6 +43,8 @@ Configuring and using stack overflow checking methods (method 1 and 2), understa
 [10. **Context Switching Mechanics**](docs/10_Context_Switching_Mechanics.md)<br>
 Deep understanding of how context switching works at the assembly level, what gets saved/restored, and the overhead involved in task switches
 
+---
+
 ## Synchronization and Communication (11-20)
 
 [11. **Queue Fundamentals**](docs/11_Queue_Fundamentals.md)<br>
@@ -74,6 +77,8 @@ Sending variable-length messages between tasks, understanding the internal imple
 [20. **Critical Sections**](docs/20_Critical_Sections.md)<br>
 Implementing critical sections using taskENTER_CRITICAL() and taskEXIT_CRITICAL(), understanding interrupt disabling, and nested critical sections
 
+---
+
 ## Interrupt Handling (21-25)
 
 [21. **Interrupt Service Routines (ISRs)**](docs/21_Interrupt_Service_Routines.md)<br>
@@ -91,6 +96,8 @@ Knowing which FreeRTOS APIs can be called from ISRs, using the xHigherPriorityTa
 [25. **Hardware Timer Integration**](docs/25_Hardware_Timer_Integration.md)<br>
 Integrating hardware timers for system tick generation, using timers for precise timing operations, and handling timer interrupts
 
+---
+
 ## Software Timers (26-28)
 
 [26. **Software Timer Creation and Management**](docs/26_Software_Timer_Creation_and_Management.md)<br>
@@ -101,6 +108,8 @@ How timer commands are queued and processed, understanding timer task priority, 
 
 [28. **Timer Accuracy and Limitations**](docs/28_Timer_Accuracy_and_Limitations.md)<br>
 Understanding timer resolution based on tick rate, jitter considerations, and when to use hardware timers instead
+
+---
 
 ## Advanced Task Management (29-33)
 
@@ -119,6 +128,8 @@ Understanding the lightweight co-routine implementation, differences from tasks,
 [33. **Task Run-Time Statistics**](docs/33_Task_Run_Time_Statistics.md)<br>
 Enabling and collecting CPU usage statistics, analyzing task execution patterns, and optimizing system performance based on statistics
 
+---
+
 ## Memory and Resource Management (34-38)
 
 [34. **Dynamic vs Static Allocation**](docs/34_Dynamic_vs_Static_Allocation.md)<br>
@@ -135,6 +146,8 @@ Understanding fragmentation issues with heap_2 and heap_4, strategies to minimiz
 
 [38. **Watchdog Timer Integration**](docs/38_Watchdog_Timer_Integration.md)<br>
 Integrating hardware watchdog timers with FreeRTOS, feeding the watchdog from appropriate tasks, and handling watchdog failures
+
+---
 
 ## Porting and Platform-Specific (39-43)
 
@@ -153,6 +166,8 @@ Understanding FreeRTOS SMP for multi-core systems, core affinity, spinlocks, and
 [43. **Custom Port Development**](docs/43_Custom_Port_Development.md)<br>
 Creating a FreeRTOS port for new architectures, implementing required functions, and testing a new port thoroughly
 
+---
+
 ## Debugging and Analysis (44-47)
 
 [44. **Trace Functionality**](docs/44_Trace_Functionality.md)<br>
@@ -167,6 +182,8 @@ Using JTAG debuggers with FreeRTOS-aware plugins, inspecting task states, queues
 [47. **Performance Optimization**](docs/47_Performance_Optimization.md)<br>
 Reducing context switch overhead, optimizing interrupt latency, choosing appropriate tick rates, and memory optimization techniques
 
+---
+
 ## Real-World Implementation (48-50)
 
 [48. **Power Management**](docs/48_Power_Management.md)<br>
@@ -177,6 +194,219 @@ Understanding FreeRTOS SafeRTOS for safety-critical applications, MISRA C compli
 
 [50. **Design Patterns and Best Practices**](docs/50_Design_Patterns_and_Best_Practices.md)<br>
 Implementing common RTOS design patterns (producer-consumer, event-driven, pipeline), avoiding deadlocks and race conditions, and structuring applications for maintainability and scalability
+
+---
+
+## Networking and Connectivity (64-70)
+
+[64. **FreeRTOS+TCP Stack**](docs/64_FreeRTOS_TCP_Stack.md)<br>
+Understanding the FreeRTOS+TCP implementation, configuring network interfaces, implementing TCP/IP applications, and socket programming with FreeRTOS
+
+[65. **lwIP Integration**](docs/65_lwIP_Integration.md)<br>
+Integrating the lightweight IP stack with FreeRTOS, choosing between raw API and sequential API, and managing lwIP threads and memory
+
+[66. **MQTT and IoT Protocols**](docs/66_MQTT_and_IoT_Protocols.md)<br>
+Implementing MQTT clients for IoT connectivity, using AWS IoT Core integration, and handling publish/subscribe patterns in embedded systems
+
+[67. **TLS/SSL and Secure Sockets**](docs/67_TLS_SSL_and_Secure_Sockets.md)<br>
+Integrating mbedTLS or similar libraries, implementing secure communications, certificate management, and cryptographic operations in RTOS context
+
+[68. **HTTP Server and REST APIs**](docs/68_HTTP_Server_and_REST_APIs.md)<br>
+Implementing embedded web servers, creating REST endpoints for device control, and handling concurrent HTTP connections
+
+[69. **Network Buffer Management**](docs/69_Network_Buffer_Management.md)<br>
+Understanding zero-copy buffer strategies, managing DMA buffers for network interfaces, and optimizing memory usage in network stacks
+
+[70. **Wireless Connectivity (WiFi/BLE)**](docs/70_Wireless_Connectivity.md)<br>
+Integrating WiFi and Bluetooth Low Energy stacks, managing connection states, and implementing wireless communication patterns with FreeRTOS
+
+---
+
+## File Systems and Storage (71-74)
+
+[71. **FreeRTOS+FAT File System**](docs/71_FreeRTOS_FAT_File_System.md)<br>
+Using the FreeRTOS+FAT implementation, configuring SD card and flash storage, and implementing file I/O operations safely in multi-tasking environment
+
+[72. **Flash Memory Management**](docs/72_Flash_Memory_Management.md)<br>
+Implementing wear leveling, managing NOR and NAND flash, handling flash-specific constraints, and creating robust storage solutions
+
+[73. **Non-Volatile Storage Patterns**](docs/73_Non_Volatile_Storage_Patterns.md)<br>
+Implementing configuration storage, handling power-loss scenarios, using CRC/checksums for data integrity, and managing settings persistence
+
+[74. **Bootloader Integration**](docs/74_Bootloader_Integration.md)<br>
+Designing dual-bank bootloaders, implementing over-the-air (OTA) updates, handling firmware upgrades safely, and recovering from failed updates
+
+---
+
+## Middleware and Protocol Stacks (75-80)
+
+[75. **USB Device and Host Stacks**](docs/75_USB_Device_and_Host_Stacks.md)<br>
+Integrating USB functionality, implementing CDC, HID, MSC classes, and managing USB task priorities and interrupts
+
+[76. **CAN Bus Integration**](docs/76_CAN_Bus_Integration.md)<br>
+Implementing CAN communication with FreeRTOS, designing message queuing strategies, and handling CAN error frames and bus-off recovery
+
+[77. **Modbus Implementation**](docs/77_Modbus_Implementation.md)<br>
+Creating Modbus RTU and TCP slaves/masters, managing serial communication with tasks, and implementing timeout and error handling
+
+[78. **Command Line Interface (CLI)**](docs/78_Command_Line_Interface.md)<br>
+Using FreeRTOS+CLI for debugging and control, creating custom commands, and implementing UART/USB command interfaces
+
+[79. **Graphics and Display Management**](docs/79_Graphics_and_Display_Management.md)<br>
+Integrating GUI libraries (LVGL, emWin, TouchGFX), managing display refresh tasks, and handling touch input with FreeRTOS
+
+[80. **Audio Processing**](docs/80_Audio_Processing.md)<br>
+Implementing real-time audio with I2S, managing audio buffers and DMA, and creating audio processing pipelines with tasks
+
+---
+
+## Design Patterns and Architecture (81-87)
+
+[81. **State Machine Implementation**](docs/81_State_Machine_Implementation.md)<br>
+Designing hierarchical state machines with FreeRTOS, using event-driven patterns, and implementing state machines as tasks
+
+[82. **Producer-Consumer Patterns**](docs/82_Producer_Consumer_Patterns.md)<br>
+Implementing multi-producer multi-consumer queues, handling backpressure, and designing efficient data pipelines
+
+[83. **Publish-Subscribe Pattern**](docs/83_Publish_Subscribe_Pattern.md)<br>
+Creating event distribution systems using queues or event groups, implementing topic-based routing, and managing subscribers dynamically
+
+[84. **Active Object Pattern**](docs/84_Active_Object_Pattern.md)<br>
+Encapsulating behavior with dedicated tasks, message-based communication, and creating self-contained concurrent objects
+
+[85. **Reactor and Proactor Patterns**](docs/85_Reactor_and_Proactor_Patterns.md)<br>
+Implementing event-driven architectures, handling multiple I/O sources, and designing responsive embedded applications
+
+[86. **Pipeline Processing Architecture**](docs/86_Pipeline_Processing_Architecture.md)<br>
+Creating multi-stage processing pipelines, balancing task priorities across stages, and optimizing throughput
+
+[87. **Hierarchical Task Design**](docs/87_Hierarchical_Task_Design.md)<br>
+Organizing complex applications with supervisor and worker tasks, implementing task hierarchies, and managing task lifecycles
+
+---
+
+## Testing and Quality Assurance (88-92)
+
+[88. **Unit Testing with CMock and Unity**](docs/88_Unit_Testing_with_CMock_and_Unity.md)<br>
+Setting up unit test frameworks for FreeRTOS code, mocking kernel functions, and implementing test-driven development for embedded systems
+
+[89. **Integration Testing Strategies**](docs/89_Integration_Testing_Strategies.md)<br>
+Testing task interactions, verifying timing constraints, and creating test harnesses for multi-tasking applications
+
+[90. **Simulation and Emulation**](docs/90_Simulation_and_Emulation.md)<br>
+Running FreeRTOS applications in QEMU or other emulators, using the Windows simulator port, and testing without hardware
+
+[91. **Code Coverage Analysis**](docs/91_Code_Coverage_Analysis.md)<br>
+Measuring test coverage for safety-critical applications, using gcov and similar tools, and achieving certification requirements
+
+[92. **Continuous Integration for Embedded**](docs/92_Continuous_Integration_for_Embedded.md)<br>
+Setting up CI/CD pipelines for FreeRTOS projects, automated building and testing, and hardware-in-the-loop testing
+
+---
+
+## Build Systems and Toolchains (93-96)
+
+[93. **CMake Build Configuration**](docs/93_CMake_Build_Configuration.md)<br>
+Creating portable CMake builds for FreeRTOS, managing multiple targets and configurations, and integrating third-party libraries
+
+[94. **Makefile Strategies**](docs/94_Makefile_Strategies.md)<br>
+Writing maintainable Makefiles for FreeRTOS projects, handling dependencies, and optimizing build times
+
+[95. **IDE Integration**](docs/95_IDE_Integration.md)<br>
+Configuring STM32CubeIDE, MCUXpresso, ESP-IDF, and other IDEs for FreeRTOS development, using IDE-specific features
+
+[96. **Cross-Platform Development**](docs/96_Cross_Platform_Development.md)<br>
+Developing FreeRTOS applications that can run on multiple architectures, abstracting hardware dependencies, and sharing code across platforms
+
+---
+
+## Migration and Compatibility (97-100)
+
+[97. **Bare Metal to RTOS Migration**](docs/97_Bare_Metal_to_RTOS_Migration.md)<br>
+Strategies for converting super-loop applications to FreeRTOS, identifying tasks, managing shared resources, and phased migration approaches
+
+[98. **Version Migration Guide**](docs/98_Version_Migration_Guide.md)<br>
+Upgrading from FreeRTOS V9.x to V10.x and beyond, handling API changes, and updating configuration for new versions
+
+[99. **RTOS Porting Between Vendors**](docs/99_RTOS_Porting_Between_Vendors.md)<br>
+Migrating from other RTOSes (ThreadX, µC/OS, Zephyr) to FreeRTOS, mapping concepts and APIs, and refactoring strategies
+
+[100. **Legacy Code Integration**](docs/100_Legacy_Code_Integration.md)<br>
+Wrapping non-reentrant legacy code for use with FreeRTOS, creating adapter tasks, and isolating legacy components
+
+---
+
+## Advanced Topics and Special Cases (101-108)
+
+[101. **Soft Real-Time vs Hard Real-Time**](docs/101_Soft_vs_Hard_Real_Time.md)<br>
+Understanding timing guarantees in FreeRTOS, analyzing worst-case execution time (WCET), and designing for predictable behavior
+
+[102. **Rate Monotonic Analysis**](docs/102_Rate_Monotonic_Analysis.md)<br>
+Applying rate monotonic scheduling theory, calculating CPU utilization, and proving schedulability of task sets
+
+[103. **Jitter Analysis and Mitigation**](docs/103_Jitter_Analysis_and_Mitigation.md)<br>
+Measuring and reducing timing jitter, understanding sources of non-determinism, and achieving consistent task execution timing
+
+[104. **Multicore Synchronization**](docs/104_Multicore_Synchronization.md)<br>
+Advanced techniques for SMP systems, cache coherency considerations, spinlock implementations, and inter-core messaging
+
+[105. **DMA and Zero-Copy Patterns**](docs/105_DMA_and_Zero_Copy_Patterns.md)<br>
+Integrating DMA with FreeRTOS safely, avoiding cache coherency issues, and implementing efficient zero-copy buffer strategies
+
+[106. **Floating Point and DSP**](docs/106_Floating_Point_and_DSP.md)<br>
+Managing floating-point context in FreeRTOS, using ARM CMSIS-DSP, and optimizing signal processing tasks
+
+[107. **Custom Scheduler Implementations**](docs/107_Custom_Scheduler_Implementations.md)<br>
+Modifying the FreeRTOS scheduler for specialized needs, implementing alternative scheduling algorithms, and understanding kernel internals
+
+[108. **Formal Verification**](docs/108_Formal_Verification.md)<br>
+Applying formal methods to FreeRTOS applications, using model checking tools, and proving system properties for safety-critical systems
+
+---
+
+## Troubleshooting and Common Pitfalls (109-115)
+
+[109. **Deadlock Detection and Prevention**](docs/109_Deadlock_Detection_and_Prevention.md)<br>
+Identifying circular wait conditions, implementing lock ordering strategies, and using timeout-based detection
+
+[110. **Race Condition Analysis**](docs/110_Race_Condition_Analysis.md)<br>
+Finding and fixing race conditions, using static analysis tools, and implementing safe concurrent access patterns
+
+[111. **Priority Inversion Scenarios**](docs/111_Priority_Inversion_Scenarios.md)<br>
+Recognizing priority inversion in real applications, mitigation strategies beyond basic mutex priority inheritance
+
+[112. **Common Configuration Errors**](docs/112_Common_Configuration_Errors.md)<br>
+Typical mistakes in FreeRTOSConfig.h, symptoms of incorrect configuration, and debugging configuration issues
+
+[113. **Interrupt Priority Issues**](docs/113_Interrupt_Priority_Issues.md)<br>
+Understanding and fixing interrupt priority configuration problems, especially with ARM Cortex-M NVIC
+
+[114. **Memory Corruption Debugging**](docs/114_Memory_Corruption_Debugging.md)<br>
+Techniques for finding buffer overruns, stack overflow, and heap corruption in multi-tasking systems
+
+[115. **Performance Bottleneck Analysis**](docs/115_Performance_Bottleneck_Analysis.md)<br>
+Identifying CPU hogs, analyzing context switch overhead, and profiling FreeRTOS applications
+
+---
+
+## Ecosystem and Community (116-120)
+
+[116. **FreeRTOS Kernel vs FreeRTOS**](docs/116_FreeRTOS_Kernel_vs_FreeRTOS.md)<br>
+Understanding the difference between the kernel-only package and the full FreeRTOS suite with libraries and demos
+
+[117. **Amazon FreeRTOS (a:FreeRTOS)**](docs/117_Amazon_FreeRTOS.md)<br>
+Overview of AWS-provided extensions, cloud connectivity libraries, and OTA update framework
+
+[118. **FreeRTOS LTS Releases**](docs/118_FreeRTOS_LTS_Releases.md)<br>
+Understanding Long-Term Support versions, when to use LTS vs latest, and support lifecycle
+
+[119. **Commercial Support and Licensing**](docs/119_Commercial_Support_and_Licensing.md)<br>
+Understanding the MIT license implications, commercial support options from WITTENSTEIN and others
+
+[120. **Community Resources**](docs/120_Community_Resources.md)<br>
+Navigating FreeRTOS forums, finding examples and demos, contributing to the project, and accessing documentation
+
+---
 
 ## Miscelaneous
 
@@ -193,3 +423,6 @@ Implementing common RTOS design patterns (producer-consumer, event-driven, pipel
 [61. **Delaying High-Priority Tasks**](docs/61_Delaying_High_Priority_Tasks_Issue.md)<br>
 [62. **Implementing GPIO toggle macros for logic analyzer debugging in both C and Rust**](docs/62_Extended_Debug_With_Logic_Analizer.md)<br>
 [63. **FreeRTOS runtime statistics tracking**](docs/63_FreeRTOS_runtime_statistics.md)<br>
+
+
+---
